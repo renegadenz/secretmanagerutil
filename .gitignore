@@ -1,0 +1,19 @@
+# Python-related files
+*.pyc
+__pycache__/
+env/
+venv/
+*.env
+
+# Docker-related files
+*.log
+*.tmp
+.dockerignore
+
+# IDE files
+.idea/
+.vscode/
+
+# Node-related files (if using frontend frameworks)
+node_modules/
+npm-debug.log

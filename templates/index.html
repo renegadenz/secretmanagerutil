@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AWS Secrets Manager Utility</title>
+</head>
+<body>
+    <h1>Secrets Manager Utility</h1>
+    <form id="createSecret">
+        <h3>Create Secret</h3>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br>
+        <label for="value">Value:</label>
+        <textarea id="value" name="value" required></textarea><br>
+        <button type="submit">Create Secret</button>
+    </form>
+    <script>
+        document.getElementById('createSecret').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const value = document.getElementById('value').value;
+
+            const response = await fetch('/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name, value: JSON.parse(value) })
+            });
+            const data = await response.json();
+            alert(data.message || data.error);
+        });
+    </script>
+</body>
+</html>
