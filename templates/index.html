@@ -2,33 +2,164 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AWS Secrets Manager Utility</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Secrets Manager</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <h1>Secrets Manager Utility</h1>
-    <form id="createSecret">
-        <h3>Create Secret</h3>
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required><br>
-        <label for="value">Value:</label>
-        <textarea id="value" name="value" required></textarea><br>
-        <button type="submit">Create Secret</button>
-    </form>
-    <script>
-        document.getElementById('createSecret').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('name').value;
-            const value = document.getElementById('value').value;
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">AWS Secrets Manager</a>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        <h1 class="text-center">AWS Secrets Manager UI</h1>
 
-            const response = await fetch('/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ name, value: JSON.parse(value) })
+        <!-- Profile Name Input -->
+        <div class="mb-4">
+            <label for="profile_name" class="form-label">AWS Profile Name</label>
+            <input type="text" id="profile_name" class="form-control" placeholder="Enter AWS Profile Name (default)">
+        </div>
+
+        <!-- Region Name Input -->
+        <div class="mb-4">
+            <label for="region_name" class="form-label">AWS Region</label>
+            <input type="text" id="region_name" class="form-control" placeholder="Enter AWS Region (default: us-east-1)">
+        </div>
+
+        <!-- Create Secret -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Create Secret</h5>
+                <form id="createSecretForm">
+                    <div class="mb-3">
+                        <label for="create_name" class="form-label">Secret Name</label>
+                        <input type="text" id="create_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Secret Value (JSON)</label>
+                        <div id="jsonEditor" class="form-control" style="height: 200px;"></div>
+                    </div>
+                    <button type="submit" class="btn btn-success">Create Secret</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- List Secrets -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">List Secrets</h5>
+                <button id="listSecretsButton" class="btn btn-primary">List Secrets</button>
+                <ul id="secretsList" class="mt-3"></ul>
+            </div>
+        </div>
+
+        <!-- Get Secret -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Get Secret</h5>
+                <form id="getSecretForm">
+                    <div class="mb-3">
+                        <label for="get_secret_name" class="form-label">Secret Name</label>
+                        <input type="text" id="get_secret_name" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-info">Get Secret</button>
+                </form>
+                <pre id="getSecretOutput" class="bg-light p-3 rounded mt-3"></pre>
+            </div>
+        </div>
+
+        <!-- Response Output -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Response</h5>
+                <pre id="responseOutput" class="bg-light p-3 rounded"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.14/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Helper function to get profile name
+        function getProfileName() {
+            return document.getElementById("profile_name").value || "default";
+        }
+
+        // Helper function to get region name
+        function getRegionName() {
+            return document.getElementById("region_name").value || "us-east-1";
+        }
+
+        // Initialize Ace Editor
+        const editor = ace.edit("jsonEditor");
+        editor.setTheme("ace/theme/github");
+        editor.session.setMode("ace/mode/json");
+
+        // Handle Create Secret Form
+        document.getElementById("createSecretForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const profileName = getProfileName();
+            const regionName = getRegionName();
+            const name = document.getElementById("create_name").value;
+            const value = editor.getValue(); // Get JSON value from Ace Editor
+
+            try {
+                JSON.parse(value); // Validate JSON syntax
+            } catch (e) {
+                document.getElementById("responseOutput").innerText = "Invalid JSON format.";
+                return;
+            }
+
+            const response = await fetch("/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ profile_name: profileName, region_name: regionName, name, value: JSON.parse(value) }),
             });
+
+            document.getElementById("responseOutput").innerText = await response.text();
+        });
+
+        // Handle List Secrets
+        document.getElementById("listSecretsButton").addEventListener("click", async () => {
+            const profileName = getProfileName();
+            const regionName = getRegionName();
+
+            const response = await fetch(`/list?profile_name=${profileName}&region_name=${regionName}`);
             const data = await response.json();
-            alert(data.message || data.error);
+
+            const secretsList = document.getElementById("secretsList");
+            secretsList.innerHTML = "";
+
+            if (data.data) {
+                data.data.forEach(secret => {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = secret.Name;
+                    secretsList.appendChild(listItem);
+                });
+            } else {
+                secretsList.innerHTML = `<li>${data.error}</li>`;
+            }
+        });
+
+        // Handle Get Secret Form
+        document.getElementById("getSecretForm").addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            const profileName = getProfileName();
+            const regionName = getRegionName();
+            const secretName = document.getElementById("get_secret_name").value;
+
+            const response = await fetch(`/get/${secretName}?profile_name=${profileName}&region_name=${regionName}`);
+            const data = await response.json();
+
+            const output = document.getElementById("getSecretOutput");
+            if (data.data) {
+                output.innerText = JSON.stringify(data.data, null, 2);
+            } else {
+                output.innerText = `Error: ${data.error}`;
+            }
         });
     </script>
 </body>
