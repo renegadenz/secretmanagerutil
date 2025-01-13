@@ -17,5 +17,5 @@ A Python-based web utility for managing AWS Secrets Manager, featuring SSO suppo
 ### Steps
 1. Clone the repository:
    ```bash
-   git clone https://github.com/username/secrets-manager-ui.git
-   cd secrets-manager-ui
+   git clone https://github.com/renegadenz/secretmanagerutil.git
+   cd secretmanagerutil
